@@ -239,6 +239,7 @@ if __name__ == "__main__":
     def server():
         global sock
         sock=ServerSocket(('10.220.48.127',8000))
+        sock.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.listen(2)
         
         while True:
@@ -261,6 +262,10 @@ if __name__ == "__main__":
                     time.sleep(0.1)
                     sock.sendall(by)
                     by=struct.pack("BBBBBBBBB",0xff,0xaa,ctrl,0x5,pitch/10,roll/10,throttle/10,yaw/10,mode)
+                    time.sleep(0.1)
+                    sock.sendall(by)
+                    #request for status
+                    by=struct.pack("BBBBBBBBB",0xff,0xaa,0x3,0x5,pitch/10,roll/10,throttle/10,yaw/10,mode)
                     time.sleep(0.1)
                     sock.sendall(by)
                     
@@ -381,9 +386,9 @@ if __name__ == "__main__":
     ui_thrd=threading.Thread(target=show_ui)
     ui_thrd.start()
 
-    soc_thrd=threading.Thread(target=server)
-    soc_thrd.daemon=True
-    soc_thrd.start()
+    sck_thrd=threading.Thread(target=server)
+    sck_thrd.daemon=True
+    sck_thrd.start()
 
     time.sleep(3)
     js_thrd=threading.Thread(target=ctrl_joystick)

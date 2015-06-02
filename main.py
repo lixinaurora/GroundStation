@@ -201,31 +201,34 @@ class main(QtGui.QDialog, Ui_Form):#, Player
 ##        ui.textBrowser.moveCursor(QtGui.QTextCursor.End)
 
 def set_slider(throttle,roll,pitch,yaw):
-     ui.slider_throto.setValue(throttle)
-     ui.label_throto.setText(str(throttle))
-     ui.slider_roll.setValue(roll)
-     ui.label_roll.setText(str(roll))
-     ui.slider_pitch.setValue(pitch)
-     ui.label_pitch.setText(str(pitch))
-     ui.slider_yaw.setValue(yaw)
-     ui.label_yaw.setText(str(yaw))
+    try:
+        ui.slider_throto.setValue(throttle)
+        ui.label_throto.setText(str(throttle))
+        ui.slider_roll.setValue(roll)
+        ui.label_roll.setText(str(roll))
+        ui.slider_pitch.setValue(pitch)
+        ui.label_pitch.setText(str(pitch))
+        ui.slider_yaw.setValue(yaw)
+        ui.label_yaw.setText(str(yaw))
+    except Exception as err:
+        time.sleep(0.1)
 
 def set_button(btn1,btn2):
+    global mode
     if (btn1==0 and btn2==0):
         ui.radioButton_stablize.setChecked(True)
-        global mode
         mode=0x1
-        print mode
+        #print mode
     else:
         if (btn1==1 and btn2==1):
             ui.radioButton_loiter.setChecked(True)
             mode=0x3
-            print mode
+            #print mode
         else:
             if (btn1==1 and btn2==0):
                 ui.radioButton_altitude.setChecked(True)
                 mode=0x4
-                print mode
+                #print mode
 
   
 if __name__ == "__main__":
@@ -238,7 +241,7 @@ if __name__ == "__main__":
 
     def receive_server():
         global receive_sock
-        receive_sock=ServerSocket(('10.220.48.111',8008))
+        receive_sock=ServerSocket(('127.0.0.1',8008))
         receive_sock.listen(2)
         
         while True:
@@ -313,7 +316,7 @@ if __name__ == "__main__":
 
     def send_server():
         global send_sock
-        send_sock=ServerSocket(('10.220.48.111',8000))
+        send_sock=ServerSocket(('127.0.0.1',8000))
         send_sock.listen(2)
         
         while True:
@@ -328,9 +331,22 @@ if __name__ == "__main__":
 ##                        time.sleep(5)
 ##                        send_sock.sendall(by)
 ##                        ctrl=0x2
-                    by=struct.pack("BBBBBBBBB",0xff,0xaa,ctrl,0x5,pitch/10,roll/10,throttle/10,yaw/10,mode)
-                    time.sleep(0.1)
-                    send_sock.sendall(by)
+                    by=struct.pack("BBBBBBBBB",0xff,0xaa,ctrl,0x5,roll/10,pitch/10,throttle/10,yaw/10,mode)
+                    send_sock.sendall(by)   
+                    time.sleep(0.05)                   
+                    by=struct.pack("BBBBBBBBB",0xff,0xaa,ctrl,0x5,roll/10,pitch/10,throttle/10,yaw/10,mode)
+                    send_sock.sendall(by)   
+                    time.sleep(0.05)
+                    by=struct.pack("BBBBBBBBB",0xff,0xaa,ctrl,0x5,roll/10,pitch/10,throttle/10,yaw/10,mode)
+                    send_sock.sendall(by)   
+                    time.sleep(0.05)
+                    by=struct.pack("BBBBBBBBB",0xff,0xaa,ctrl,0x5,roll/10,pitch/10,throttle/10,yaw/10,mode)
+                    send_sock.sendall(by)   
+                    time.sleep(0.05)
+                    #request for status
+                    by=struct.pack("BBBBBBBBB",0xff,0xaa,0x3,0x5,roll/10,pitch/10,throttle/10,yaw/10,mode)
+                    send_sock.sendall(by)   
+                    time.sleep(0.05) 
                     #print 'sended!'
                 except Exception as err:
                     ui.textBrowser.append("Send_server:     Disconnected!")
@@ -339,6 +355,7 @@ if __name__ == "__main__":
 
 
     def ctrl_joystick():
+        global throttle,pitch,roll,yaw
         while True:
             try:
                 pygame.joystick.init()
@@ -351,31 +368,25 @@ if __name__ == "__main__":
                     ui.textBrowser.append("Get joystick:" + str(_joystick.get_name()))
                     ui.textBrowser.moveCursor(QtGui.QTextCursor.End)
                     joystick_nameoutput=1
-
                 #print joystick
                 while joystick:
                     try:
-                        time.sleep(0.1)
+                        time.sleep(0.05)
                         pygame.event.get()
-                        throttle=int(_joystick.get_axis(0)*400+1500)         
-                        #pygame.event.get()
+                        throttle=int(_joystick.get_axis(0)*400+1500)         			
+                        print throttle
                         pitch=int(_joystick.get_axis(1)*400+1500)
-                        #pygame.event.get()
                         roll=int(_joystick.get_axis(3)*400+1500) 
-                        #pygame.event.get()
                         yaw=int(_joystick.get_axis(2)*470+1500)
                         if yaw>1870:
                             yaw=1900
                         elif yaw<1100:
                             yaw=1100
-                                 
-                        #pygame.event.get()
                         btn1=_joystick.get_button(0)
-                        #pygame.event.get()
                         btn2=_joystick.get_button(1)
-                        
                         set_button(btn1,btn2)
                         set_slider(throttle,roll,pitch,yaw)
+                        
                         
                     except Exception as err:
                         ui.textBrowser.append("Joystick err:     Disconnected!")

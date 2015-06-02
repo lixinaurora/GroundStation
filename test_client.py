@@ -4,7 +4,8 @@ import sys,socket,struct,time
 
 if __name__=='__main__':
     s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(('10.220.48.127',8000))
+    s.connect(('10.220.48.40',8008))
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     #i=5
     while True:
         #i=i-1
