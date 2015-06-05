@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1155</width>
-    <height>688</height>
+    <height>736</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -649,21 +649,21 @@
           <item row="0" column="0" alignment="Qt::AlignHCenter">
            <widget class="QLabel" name="label_57">
             <property name="text">
-             <string>rollspeed</string>
+             <string>rolls_peed</string>
             </property>
            </widget>
           </item>
           <item row="0" column="1" alignment="Qt::AlignHCenter">
            <widget class="QLabel" name="label_58">
             <property name="text">
-             <string>pitchspeed</string>
+             <string>pitch_speed</string>
             </property>
            </widget>
           </item>
           <item row="0" column="2" alignment="Qt::AlignHCenter">
            <widget class="QLabel" name="label_59">
             <property name="text">
-             <string>yawspeed</string>
+             <string>yaw_speed</string>
             </property>
            </widget>
           </item>
