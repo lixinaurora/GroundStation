@@ -108,7 +108,8 @@ class main(QtGui.QDialog, Ui_Form):#, Player
         self.textBrowser.append('CTRL:     takeoff')
         self.textBrowser.moveCursor(QtGui.QTextCursor.End)
         global ctrl
-        ctrl=0x4  #takeoff
+        if arm != 0:
+            ctrl=0x4  #takeoff
    
     @QtCore.pyqtSlot()
     def on_pushButton_land_clicked(self):
@@ -254,6 +255,7 @@ if __name__ == "__main__":
         sys.exit(app.exec_())
 
     def receive_server():
+        global ui
         global receive_sock
         receive_sock=ServerSocket(('127.0.0.1',8008))
         receive_sock.listen(2)
@@ -274,23 +276,39 @@ if __name__ == "__main__":
 
                         recv_bytes=receive_sock.recv(1)
                         global state,bf_state
-                        global ctrl,throttle
-                        global joy_enable_finished,joy_enable_error
+                        global ctrl,throttle,mode
+                        global joy_enable,joy_state
                         global chan3,arm
                         bf_state=state
                         state=struct.unpack("B", recv_bytes)
+                        print state
                         state=state[0]
                         #print bf_state
                         #print state
                         #print ctrl
                         #print
                         if (bf_state==1 and state==0 and ctrl==4):  #finished taking off
+                            ui.textBrowser.append('finished taking off')
+                            ui.textBrowser.moveCursor(QtGui.QTextCursor.End)
                             joy_state = 1
+                            joy_enable=0
                             ctrl=2
+                            mode = 3 #loiter
+                            ui.radioButton_loiter.setChecked(True)
+##                            mode = 4 #alt hold
+##                            ui.radioButton_altitude.setChecked(True)
                             throttle=chan3
-                        if (bf_state==1 and state==3):  #error during taking off
+                        elif (bf_state==1 and state==3):  #error during taking off
+                            ui.textBrowser.append('error during taking off')
+                            ui.textBrowser.moveCursor(QtGui.QTextCursor.End)
                             joy_state = 2
+                            joy_enable=0
                             ctrl=2
+                            mode = 2 #land
+                            ui.radioButton_land.setChecked(True)
+                            throttle=chan3
+                        elif (state==2 and ctrl == 4):
+                            ctrl = 2
                                                    
                         recv_bytes=receive_sock.recv(4)
                         length=struct.unpack("i", recv_bytes)  #length=120
@@ -306,7 +324,7 @@ if __name__ == "__main__":
                         chan6, chan7, chan8, vol_remain, cur_remain, bat_remain, \
                         rollspeed,pitchspeed,yawspeed,hud_alt,hud_climb,hud_groundspeed, \
                         rollangle,pitchangle,yawangle  \
-                        = struct.unpack("iiiiiiiiiiiiiiiiiiiiiiiiffffffiii", recv_bytes)                 
+                        = struct.unpack("iiiiiiiiiiiiiiiiiiiiiiiifffffffff", recv_bytes)                 
                         ui.label_arm.setText(str(arm))
                         ui.label_head_N.setText(str(heading_north))
                         ui.label_satellites.setText(str(satellites_visible))
@@ -332,23 +350,23 @@ if __name__ == "__main__":
                         ui.label_cur_remain.setText(str(cur_remain)+'mA')
                         ui.label_bat_remain.setText(str(bat_remain)+'%')
                         s=str(rollspeed)
-                        ui.label_rollspeed.setText(s[0:5]+'cm/s')
+                        ui.label_rollspeed.setText(s[0:6]+'rad/s')
                         s=str(pitchspeed)
-                        ui.label_pitchspeed.setText(s[0:5]+'cm/s')
+                        ui.label_pitchspeed.setText(s[0:6]+'rad/s')
                         s=str(yawspeed)
-                        ui.label_yawspeed.setText(s[0:5]+'cm/s')
+                        ui.label_yawspeed.setText(s[0:6]+'rad/s')
                         s=str(hud_alt)
-                        ui.label_altitude.setText(s[0:5]+'m')
+                        ui.label_altitude.setText(s[0:6]+'m')
                         s=str(hud_climb*100)
-                        ui.label_climb_speed.setText(s[0:5]+'cm/s')
+                        ui.label_climb_speed.setText(s[0:6]+'cm/s')
                         s=str(hud_groundspeed)
                         ui.label_ground_speed.setText(s[0:5]+'cm/s')
                         s=str(rollangle)
-                        ui.label_roll_angle.setText(s[0:5]+'rad')
+                        ui.label_roll_angle.setText(s[0:7]+"'")
                         s=str(pitchangle)
-                        ui.label_pitch_angle.setText(s[0:5]+'rad')
+                        ui.label_pitch_angle.setText(s[0:7]+"'")
                         s=str(yawangle)
-                        ui.label_yaw_angle.setText(s[0:5]+'rad')
+                        ui.label_yaw_angle.setText(s[0:7]+"'")
                         
                 except Exception as err:
                     ui.textBrowser.append("Receive_server:     Disconnected!")
@@ -370,10 +388,7 @@ if __name__ == "__main__":
             
             while True:
                 try:
-                    if (state==2 and ctrl==0x4):
-                        ctrl=0x2
-                        
-                    elif (state==0 and ctrl==0x4):
+                    if (state==0 and ctrl==0x4):#send takeoff command
                         print 'ctrl:    ',
                         print ctrl
                         print 'state:    ',
@@ -386,7 +401,7 @@ if __name__ == "__main__":
                         #by=struct.pack("BBBBBBBBB",0xff,0xaa,ctrl,0x0,0x0,0x0,0x0,0x0,0x0)
                         by=struct.pack("BBBB",0xff,0xaa,ctrl,0x0) 
                         send_sock.sendall(by)
-                        time.sleep(0.25)
+                        time.sleep(0.35)
 
                     elif ctrl==0x6:    #level
                         by=struct.pack("BBBBBBBBB",0xff,0xaa,ctrl,0x5,roll/10,pitch/10,throttle/10,yaw/10,mode)
@@ -453,6 +468,15 @@ if __name__ == "__main__":
                         yaw_temp=int(_joystick.get_axis(2)*470+1500)
                         btn1_temp=_joystick.get_button(0)
                         btn2_temp=_joystick.get_button(1)
+##                        print 'joy_state ',
+##                        print joy_state
+##                        print 'joy_enable ',
+##                        print joy_enable
+##                        print 'btn1_tmp ',
+##                        print btn1_temp
+##                        print 'btn2_tmp ',
+##                        print btn2_temp
+##                        print
                         if (joy_enable ==1):
                             throttle=throttle_temp
                             pitch=pitch_temp
@@ -467,18 +491,23 @@ if __name__ == "__main__":
                             btn2=btn2_temp
                             set_button(btn1,btn2)
                             set_slider(throttle,roll,pitch,yaw)
-                            print btn1,btn2
+##                            print btn1,btn2
                         else:
                             if (joy_state==1 and btn1_temp==1 and btn2_temp==1\
-                                and throttle_temp>1400):
+                                and throttle_temp>1400):#loiter
+##                            if (joy_state==1 and btn1_temp==1 and btn2_temp==0\
+##                                and throttle_temp>1400):#alt hold
                                 #state:finished taking off
                                 #mode:loiter,throttle>1400,unlock joystick
                                 joy_enable = 1
+                                joy_state = 0
                             if (joy_state==2 and btn1_temp==0 and btn2_temp==1\
                                 and throttle_temp<1400):
                                 #state:error during taking off
                                 #mode:land,throttle<1400,unlock joystick
                                 joy_enable = 1
+                                joy_state = 0
+
                                                                            
                     except Exception as err:
                         ui.textBrowser.append("Joystick err:     Disconnected!")
